@@ -3,16 +3,24 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from .models import Post, Comment
 from .forms import PostForm, CommentForm
+from django.http import JsonResponse
+from django.core import serializers
 
 
 def post_list(request):
     posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
-    return render(request, 'blog/post_list.html', {'posts': posts})
+    # return render(request, 'blog/post_list.html', {'posts': posts})
+
+    data = serializers.serialize('json', posts)
+    return JsonResponse({"data": data}, status=200)
 
 
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    return render(request, 'blog/post_detail.html', {'post': post})
+    # return render(request, 'blog/post_detail.html', {'post': post})
+
+    data = serializers.serialize('json', [post, ])
+    return JsonResponse({"data": data}, status=200)
 
 
 @login_required
