@@ -1,6 +1,7 @@
 *.pyc
 *~
 __pycache__
+.idea
 local_settings.py
 myvenv
 db.sqlite3
