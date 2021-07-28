@@ -8,7 +8,7 @@ from http import HTTPStatus
 import json
 
 
-class PostTest(TestCase):
+class TestPost(TestCase):
     def _create_post(self, user, title, text):
         post = Post.objects.create(
             author=user, title=title, text=text, published_date=timezone.now()
@@ -49,8 +49,11 @@ class PostTest(TestCase):
         self.assertEqual(post["text"], saved_post.text)
 
     def test_404_post_not_exist(self):
-        # When : 존재하지 않은 Post 조회
-        response = self.client.get(reverse("post_detail", kwargs={"pk": 1234}))
+        # Given : 존재하지 않는 Post pk
+        not_exist_pk = 1234
+
+        # When : 존재하지 않는 Post 조회
+        response = self.client.get(reverse("post_detail", kwargs={"pk": not_exist_pk}))
 
         # Then : 404 에러를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
