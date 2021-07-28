@@ -5,22 +5,21 @@ from .models import Post, Comment
 from .forms import PostForm, CommentForm
 from django.http import JsonResponse
 from django.core import serializers
+from http import HTTPStatus
 
 
 def post_list(request):
     posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
-    # return render(request, 'blog/post_list.html', {'posts': posts})
-
     data = serializers.serialize('json', posts)
-    return JsonResponse({"data": data}, status=200)
+
+    return JsonResponse({'data': data}, status=HTTPStatus.OK)
 
 
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    # return render(request, 'blog/post_detail.html', {'post': post})
-
     data = serializers.serialize('json', [post, ])
-    return JsonResponse({"data": data}, status=200)
+
+    return JsonResponse({'data': data}, status=HTTPStatus.OK)
 
 
 @login_required
@@ -31,12 +30,11 @@ def post_new(request):
 
 @login_required
 def post_new(request):
-    if request.method == "POST":
+    if request.method == 'POST':
         form = PostForm(request.POST)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
-            # post.published_date = timezone.now()
             post.save()
             return redirect('post_detail', pk=post.pk)
     else:
@@ -47,12 +45,11 @@ def post_new(request):
 @login_required
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.method == "POST":
+    if request.method == 'POST':
         form = PostForm(request.POST, instance=post)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
-            # post.published_date = timezone.now()
             post.save()
             return redirect('post_detail', pk=post.pk)
     else:
@@ -83,7 +80,7 @@ def add_comment_to_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
     if request.method == 'POST':
         form = CommentForm(request.POST)
-        print("POST", form)
+        print('POST', form)
         if form.is_valid():
             comment = form.save(commit=False)
             comment.post = post
