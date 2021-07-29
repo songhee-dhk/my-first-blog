@@ -36,7 +36,11 @@ def post_new(request):
             post = form.save(commit=False)
             post.author = request.user
             post.save()
-            return redirect('post_detail', pk=post.pk)
+            data = serializers.serialize('json', [post, ])
+            return JsonResponse({'data': data}, status=HTTPStatus.CREATED)
+        else:
+            message = {"message": "잘못된 입력입니다"}
+            return JsonResponse(message, status=HTTPStatus.BAD_REQUEST)
     else:
         form = PostForm()
     return render(request, 'blog/post_edit.html', {'form': form})
