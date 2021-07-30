@@ -7,7 +7,7 @@ class Post(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     text = models.TextField()
-    created_date = models.DateTimeField(default=timezone.now)
+    created_date = models.DateTimeField(default=timezone.now())
     published_date = models.DateTimeField(blank=True, null=True)
 
     def publish(self):
@@ -20,9 +20,21 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+    def json(self):
+        return {
+            "author": self.author.pk,
+            "pk": self.pk,
+            "title": self.title,
+            "text": self.text,
+            "created_date": self.created_date.__str__(),
+            "published_date": self.published_date.__str__(),
+        }
+
 
 class Comment(models.Model):
-    post = models.ForeignKey('blog.Post', on_delete=models.CASCADE, related_name='comments')
+    post = models.ForeignKey(
+        "blog.Post", on_delete=models.CASCADE, related_name="comments"
+    )
     author = models.CharField(max_length=200)
     text = models.TextField()
     created_date = models.DateTimeField(default=timezone.now)
