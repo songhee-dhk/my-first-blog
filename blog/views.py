@@ -29,24 +29,19 @@ def post_detail(request, pk):
 
 
 @login_required
-def post_new(request):
-    form = PostForm
-    return render(request, "blog/post_edit.html", {"form": form})
-
-
-@login_required
 @require_POST
 def post_new(request):
     data = json.loads(request.body)
 
-    if "title" in data and "text" in data:
+    try:
         post = Post.objects.create(
             author=request.user, title=data["title"], text=data["text"]
         )
         post.save()
-        return JsonResponse(data=model_to_dict(post),status=HTTPStatus.CREATED)
-    else:
+    except KeyError:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
+    else:
+        return JsonResponse(data=model_to_dict(post), status=HTTPStatus.CREATED)
 
 
 @login_required
@@ -55,20 +50,23 @@ def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
     data = json.loads(request.body)
 
-    if "title" in data and "text" in data:
+    try:
         post.title = data["title"]
         post.text = data["text"]
         post.author = request.user
-        post.save()
-        return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
-    else:
+    except KeyError:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
+    else:
+        return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
 @login_required
 def post_draft_list(request):
     posts = Post.objects.filter(published_date__isnull=True).order_by("created_date")
-    return render(request, "blog/post_draft_list.html", {"posts": posts})
+    data = json.dumps(
+        [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
+    )
+    return JsonResponse({"data": data}, status=HTTPStatus.OK)
 
 
 @login_required
