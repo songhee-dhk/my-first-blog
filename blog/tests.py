@@ -83,7 +83,9 @@ class TestPost(TestCase):
         self.assertIn("id", post)
         self.assertEqual(post["author"], self.user.pk)
 
-    def test_redirect_login_page_when_not_logged_in_user_attempts_to_create_a_post(self):
+    def test_redirect_login_page_when_not_logged_in_user_attempts_to_create_a_post(
+        self,
+    ):
         # Given : 로그인하지 않은 상태와 정상적으로 Post를 생성할 수 있는 데이터
         data = {"title": "Post Title", "text": "Post Text"}
 
@@ -182,3 +184,21 @@ class TestPost(TestCase):
 
         # Then : Not Found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+    def test_publish_post_return_ok(self):
+        # Given : publish 되지 않은 Post 생성
+        self._login_user()
+        not_published_post = Post.objects.create(
+            author=self.user, title="Post title", text="Post text"
+        )
+
+        # When : Post의 publish 요청
+        response = self.client.post(
+            reverse("post_publish", kwargs={"pk": not_published_post.pk})
+        )
+
+        # Then : 200 OK를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # And : Post의 published_date 값이 변경
+        self.assertIsNotNone(response.json()['published_date'])

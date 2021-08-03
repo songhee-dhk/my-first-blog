@@ -44,7 +44,7 @@ def post_new(request):
             author=request.user, title=data["title"], text=data["text"]
         )
         post.save()
-        return JsonResponse(model_to_dict(post), status=HTTPStatus.CREATED)
+        return JsonResponse(data=model_to_dict(post),status=HTTPStatus.CREATED)
     else:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
 
@@ -72,10 +72,11 @@ def post_draft_list(request):
 
 
 @login_required
+@require_POST
 def post_publish(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.publish()
-    return redirect("post_detail", pk=pk)
+    return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
 def post_remove(request, pk):
