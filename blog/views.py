@@ -37,11 +37,10 @@ def post_new(request):
         post = Post.objects.create(
             author=request.user, title=data["title"], text=data["text"]
         )
-        post.save()
     except KeyError:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
     else:
-        return JsonResponse(data=model_to_dict(post), status=HTTPStatus.CREATED)
+        return JsonResponse(model_to_dict(post), status=HTTPStatus.CREATED)
 
 
 @login_required
