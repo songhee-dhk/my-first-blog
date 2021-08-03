@@ -6,13 +6,18 @@ from .forms import PostForm, CommentForm
 from django.http import JsonResponse
 from http import HTTPStatus
 import json
+from django.forms.models import model_to_dict
+from .helpers import CustomDateTimeJSONEncoder
+from django.views.decorators.http import require_POST
 
 
 def post_list(request):
     posts = Post.objects.filter(published_date__lte=timezone.now()).order_by(
         "published_date"
     )
-    data = json.dumps([post.json() for post in posts])
+    data = json.dumps(
+        [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
+    )
 
     return JsonResponse({"data": data}, status=HTTPStatus.OK)
 
@@ -20,7 +25,7 @@ def post_list(request):
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
 
-    return JsonResponse(post.json(), status=HTTPStatus.OK)
+    return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
 @login_required
@@ -30,36 +35,34 @@ def post_new(request):
 
 
 @login_required
+@require_POST
 def post_new(request):
-    if request.method == "POST":
-        form = PostForm(request.POST)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            return JsonResponse(post.json(), status=HTTPStatus.CREATED)
-        else:
-            return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
+    data = json.loads(request.body)
+
+    if "title" in data and "text" in data:
+        post = Post.objects.create(
+            author=request.user, title=data["title"], text=data["text"]
+        )
+        post.save()
+        return JsonResponse(model_to_dict(post), status=HTTPStatus.CREATED)
     else:
-        form = PostForm()
-    return render(request, "blog/post_edit.html", {"form": form})
+        return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
 
 
 @login_required
+@require_POST
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.method == "POST":
-        form = PostForm(request.POST, instance=post)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            return JsonResponse(post.json(), status=HTTPStatus.OK)
-        else:
-            return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
+    data = json.loads(request.body)
+
+    if "title" in data and "text" in data:
+        post.title = data["title"]
+        post.text = data["text"]
+        post.author = request.user
+        post.save()
+        return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
     else:
-        form = PostForm(instance=post)
-    return render(request, "blog/post_edit.html", {"form": form})
+        return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
 
 
 @login_required
@@ -83,16 +86,12 @@ def post_remove(request, pk):
 
 def add_comment_to_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.method == "POST":
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.save()
-            return redirect("post_detail", pk=post.pk)
-    else:
-        form = CommentForm()
-    return render(request, "blog/add_to_comment_to_post.html", {"form": form})
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.save()
+        return redirect("post_detail", pk=post.pk)
 
 
 @login_required

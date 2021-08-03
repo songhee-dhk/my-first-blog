@@ -19,11 +19,11 @@ class TestPost(TestCase):
         return self.client.login(username=self.username, password=self.password)
 
     def setUp(self):
-        self.post_author = User.objects.create(username="author")
+        self.post_author = User.objects.create_user("author")
 
         self.username = "username"
         self.password = "password"
-        self.user = User.objects.create(username=self.username)
+        self.user = User.objects.create_user(self.username)
         self.user.set_password(self.password)
         self.user.save()
 
@@ -56,7 +56,7 @@ class TestPost(TestCase):
         self.assertEqual(post["title"], saved_post.title)
         self.assertEqual(post["text"], saved_post.text)
 
-    def test_404_post_not_exist(self):
+    def test_return_404_when_request_not_exist_post(self):
         # Given : 존재하지 않는 Post pk
         not_exist_pk = 1234
 
@@ -66,43 +66,53 @@ class TestPost(TestCase):
         # Then : 404 에러를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def test_create_post(self):
+    def test_return_created_when_create_post(self):
         # Given : 로그인한 유저와 Post를 정상적으로 생성할 수 있는 데이터
         self._login_user()
         data = {"title": "Post Title", "text": "Post Text"}
 
         # When : 정상적인 Post 등록
-        response = self.client.post(reverse("post_new"), data=data)
+        response = self.client.post(
+            reverse("post_new"), data=json.dumps(data), content_type="application/json"
+        )
 
         # Then : 정상적으로 Post의 값들이 생성되었는지 확인
         post = response.json()
 
         self.assertEqual(response.status_code, HTTPStatus.CREATED)
-        self.assertIn("pk", post)
+        self.assertIn("id", post)
         self.assertEqual(post["author"], self.user.pk)
 
-    def test_redirect_login_page_when_create_not_login(self):
+    def test_redirect_login_page_when_not_logged_in_user_attempts_to_create_a_post(self):
         # Given : 로그인하지 않은 상태와 정상적으로 Post를 생성할 수 있는 데이터
         data = {"title": "Post Title", "text": "Post Text"}
 
         # When : Post를 생성
-        response = self.client.post(reverse("post_new"), data=data)
+        response = self.client.post(
+            reverse("post_new"),
+            data=json.dumps(data),
+            content_type="application/json",
+        )
 
         # Then : Post가 생성되지 않고 로그인 페이지로 이동하게 한다
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
-    def test_bad_request_when_create_empty_form(self):
+    def test_return_bad_request_when_create_post_in_empty_form(self):
         # Given : 비어있는 Form
         self._login_user()
         empty_form = {}
 
         # When : 빈 Form으로 Post 생성을 요청
-        response = self.client.post(reverse("post_new"), data=empty_form)
+        response = self.client.post(
+            reverse("post_new"),
+            data=json.dumps(empty_form),
+            content_type="application/json",
+        )
 
         # Then : Post가 정상적으로 생성되지 않고, Bad_Request를 반환
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
 
-    def test_success_update_post(self):
+    def test_return_ok_when_update_post(self):
         # Given : 정상적으로 Post의 수정이 가능한 데이터
         exist_post = self._create_post(self.post_author, "Old Title", "Old Text")
         self._login_user()
@@ -110,7 +120,9 @@ class TestPost(TestCase):
 
         # When : Post 수정 내용과 함께 요청을 보냄
         response = self.client.post(
-            reverse("post_edit", kwargs={"pk": exist_post.pk}), data=update_form
+            reverse("post_edit", kwargs={"pk": exist_post.pk}),
+            data=json.dumps(update_form),
+            content_type="application/json",
         )
 
         # Then : Post의 내용이 정상적으로 수정
@@ -121,14 +133,16 @@ class TestPost(TestCase):
         self.assertEqual(post["title"], update_form["title"])
         self.assertEqual(post["text"], update_form["text"])
 
-    def test_update_post_redirect_login_page_when_not_login(self):
+    def test_redirect_login_page_when_not_logged_in_user_attempts_to_update_post(self):
         # Given : 로그인하지 않은 상태와 정상적으로 Post를 수정할 수 있는 데이터
         exist_post = self._create_post(self.post_author, "Old Title", "Old Text")
         update_form = {"title": "New Title", "text": "New Text"}
 
         # When : Post의 수정을 요청
         response = self.client.post(
-            reverse("post_edit", kwargs={"pk": exist_post.pk}), data=update_form
+            reverse("post_edit", kwargs={"pk": exist_post.pk}),
+            data=json.dumps(update_form),
+            content_type="application/json",
         )
 
         # Then : Post가 수정되지 않는다
@@ -139,32 +153,32 @@ class TestPost(TestCase):
         # And : 로그인 페이지로 이동
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
-    def test_update_post_return_bad_request_if_empty_form(self):
+    def test_return_bad_request_when_attempts_to_update_post_in_empty_form(self):
         # Given : 로그인했지만 비어있는 Form
         exist_post = self._create_post(self.post_author, "Old Title", "Old Text")
         self._login_user()
-        empty_form = {"title": "", "text": ""}
+        empty_form = {}
 
         # When : 빈 Form으로 Post 수정을 요청
         response = self.client.post(
-            reverse("post_edit", kwargs={"pk": exist_post.pk}), data=empty_form
+            reverse("post_edit", kwargs={"pk": exist_post.pk}),
+            data=json.dumps(empty_form),
+            content_type="application/json",
         )
 
-        # Then : Post가 수정되지 않는다
-        self.assertNotEqual(exist_post.author, self.user.pk)
-        self.assertNotEqual(exist_post.title, empty_form["title"])
-        self.assertNotEqual(exist_post.text, empty_form["text"])
-
-        # And : Bad_Request를 반환
+        # Then : Bad_Request를 반환
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
 
-    def test_update_post_return_not_found_if_not_exist_pk(self):
+    def test_should_return_404_when_attempts_to_update_not_exist_post(self):
         # Given : 존재하지 않는 Post pk
         self._login_user()
         not_exist_pk = 1234
 
         # When : 존재하지 않는 Post의 수정을 요청
-        response = self.client.get(reverse("post_edit", kwargs={"pk": not_exist_pk}))
+        response = self.client.post(
+            reverse("post_edit", kwargs={"pk": not_exist_pk}),
+            content_type="application/json",
+        )
 
         # Then : Not Found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
