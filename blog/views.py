@@ -47,12 +47,12 @@ def post_new(request):
 @require_POST
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    data = json.loads(request.body)
 
+    data = json.loads(request.body)
+    post.author = request.user
     try:
         post.title = data["title"]
         post.text = data["text"]
-        post.author = request.user
     except KeyError:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
     else:
