@@ -201,4 +201,4 @@ class TestPost(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
         # And : Post의 published_date 값이 변경
-        self.assertIsNotNone(response.json()['published_date'])
+        self.assertTrue(response.json()['published_date'])
