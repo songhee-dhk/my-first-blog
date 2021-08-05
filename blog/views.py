@@ -4,105 +4,103 @@ from django.contrib.auth.decorators import login_required
 from .models import Post, Comment
 from .forms import PostForm, CommentForm
 from django.http import JsonResponse
-from django.core import serializers
 from http import HTTPStatus
+import json
+from django.forms.models import model_to_dict
+from .helpers import CustomDateTimeJSONEncoder
+from django.views.decorators.http import require_POST
 
 
 def post_list(request):
-    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
-    data = serializers.serialize('json', posts)
+    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by(
+        "published_date"
+    )
+    data = json.dumps(
+        [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
+    )
 
-    return JsonResponse({'data': data}, status=HTTPStatus.OK)
+    return JsonResponse({"data": data}, status=HTTPStatus.OK)
 
 
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    data = serializers.serialize('json', [post, ])
 
-    return JsonResponse({'data': data}, status=HTTPStatus.OK)
-
-
-@login_required
-def post_new(request):
-    form = PostForm
-    return render(request, 'blog/post_edit.html', {'form': form})
+    return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
 @login_required
+@require_POST
 def post_new(request):
-    if request.method == 'POST':
-        form = PostForm(request.POST)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            data = serializers.serialize('json', [post, ])
-            return JsonResponse({'data': data}, status=HTTPStatus.CREATED)
-        else:
-            message = {"message": "잘못된 입력입니다"}
-            return JsonResponse(message, status=HTTPStatus.BAD_REQUEST)
+    data = json.loads(request.body)
+
+    try:
+        post = Post.objects.create(
+            author=request.user, title=data["title"], text=data["text"]
+        )
+    except KeyError:
+        return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
     else:
-        form = PostForm()
-    return render(request, 'blog/post_edit.html', {'form': form})
+        return JsonResponse(model_to_dict(post), status=HTTPStatus.CREATED)
 
 
 @login_required
+@require_POST
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.method == 'POST':
-        form = PostForm(request.POST, instance=post)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            return redirect('post_detail', pk=post.pk)
+
+    data = json.loads(request.body)
+    post.author = request.user
+    try:
+        post.title = data["title"]
+        post.text = data["text"]
+    except KeyError:
+        return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
     else:
-        form = PostForm(instance=post)
-    return render(request, 'blog/post_edit.html', {'form': form})
+        return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
 @login_required
 def post_draft_list(request):
-    posts = Post.objects.filter(published_date__isnull=True).order_by('created_date')
-    return render(request, 'blog/post_draft_list.html', {'posts': posts})
+    posts = Post.objects.filter(published_date__isnull=True).order_by("created_date")
+    data = json.dumps(
+        [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
+    )
+    return JsonResponse({"data": data}, status=HTTPStatus.OK)
 
 
 @login_required
+@require_POST
 def post_publish(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.publish()
-    return redirect('post_detail', pk=pk)
+    return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
 def post_remove(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.delete()
-    return redirect('post_list')
+    return redirect("post_list")
 
 
 def add_comment_to_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.save()
-            return redirect('post_detail', pk=post.pk)
-    else:
-        form = CommentForm()
-    return render(request, 'blog/add_to_comment_to_post.html', {'form': form})
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.save()
+        return redirect("post_detail", pk=post.pk)
 
 
 @login_required
 def comment_approve(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.approve()
-    return redirect('post_detail', pk=comment.post.pk)
+    return redirect("post_detail", pk=comment.post.pk)
 
 
 @login_required
 def comment_remove(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.delete()
-    return redirect('post_detail', pk=comment.post.pk)
+    return redirect("post_detail", pk=comment.post.pk)
