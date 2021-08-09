@@ -297,3 +297,36 @@ class TestComment(TestCase):
 
         # Then : 404 not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+    def return_ok_when_request_approve_coment(self):
+        # Given : 아직 approve 되지 않은 comment
+        self._login_user()
+        saved_comment = self._create_comment(self.post, "author", "text")
+
+        # When : comment의 approve를 요청
+        response = self.client.post(
+            reverse("comment_approve", kwargs={"pk": saved_comment.pk}),
+            content_type="application/json",
+        )
+
+        # Then : 200 ok를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # And : comment의 approved_date 값이 True로 변경
+        data = response.json()
+
+        self.assertTrue(data["approved_comment"])
+
+    def return_404_when_request_approve_not_exist_comment(self):
+        # Given : 존재하지 않는 comment의 pk
+        self._login_user()
+        not_exist_comment_pk = 1234
+
+        # When : comment의 approve를 요청
+        response = self.client.post(
+            reverse("comment_approve", kwargs={"pk": not_exist_comment_pk}),
+            content_type="application/json",
+        )
+
+        # Then : 404 not found를 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)

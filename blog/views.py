@@ -128,5 +128,4 @@ def comment_edit(request, pk):
         return JsonResponse(data={}, status=HTTPStatus.BAD_REQUEST)
 
     comment.save()
-
     return JsonResponse(model_to_dict(comment), status=HTTPStatus.OK)
