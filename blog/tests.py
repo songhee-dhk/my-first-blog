@@ -36,7 +36,7 @@ class TestPost(TestCase):
         response = self.client.get(reverse("post_list"))
 
         # Then : 생성된 모든 Post가 정상적으로 조회되는지 확인
-        data = json.loads(response.json()["data"])
+        data = response.json()
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertEqual(len(data), 30)
