@@ -44,6 +44,9 @@ class TestPost(TestCase):
     def test_get_post_detail(self):
         # Given : 새로운 Post 생성
         saved_post = self._create_post(self.user, "Post title", "Post content")
+        Comment.objects.create(post=saved_post,author="AUTHOR", text="TEXT")
+        Comment.objects.create(post=saved_post,author="AUTHOR", text="TEXT")
+        Comment.objects.create(post=saved_post,author="AUTHOR", text="TEXT")
 
         # When : 생성된 Post 단건 조회
         response = self.client.get(reverse("post_detail", kwargs={"pk": saved_post.pk}))
@@ -201,4 +204,70 @@ class TestPost(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
         # And : Post의 published_date 값이 변경
-        self.assertTrue(response.json()['published_date'])
+        self.assertTrue(response.json()["published_date"])
+
+
+class TestComment(TestCase):
+    def _login_user(self):
+        return self.client.login(username=self.username, password=self.password)
+
+    def setUp(self):
+        self.username = "username"
+        self.password = "password"
+        self.user = User.objects.create_user(self.username)
+        self.user.set_password(self.password)
+        self.user.save()
+
+        self.post = Post.objects.create(
+            author=self.user, title="Post title", text="Post text"
+        )
+
+    def test_should_return_ok_when_create_comment(self):
+        # Given : 정상적으로 Comment 작성이 가능한 데이터
+        valid_form = {"author": "comment author", "text": "comment text"}
+
+        # When : Comment의 생성을 요청
+        response = self.client.post(
+            reverse("add_comment_to_post", kwargs={"pk": self.post.pk}),
+            data=json.dumps(valid_form),
+            content_type="application/json",
+        )
+
+        # Then : 201 Created가 반환
+        self.assertEqual(response.status_code, HTTPStatus.CREATED)
+
+        # And : 생성 후 반환된 데이터와 전달한 데이터가 일치하는지 확인
+        data = response.json()
+        self.assertTrue(data["id"])
+        self.assertEqual(data["author"], valid_form["author"])
+        self.assertEqual(data["text"], valid_form["text"])
+
+
+    def test_should_return_404_when_attempts_to_add_comment_to_not_exist_post(self):
+        # Given : 없는 Post의 pk와 정상적으로 Comment의 작성이 가능한 데이터
+        not_exist_post_pk = 1234
+        valid_form = {"author": "comment author", "text": "comment text"}
+
+        # When : Comment의 생성을 요청
+        response = self.client.post(
+            reverse("add_comment_to_post", kwargs={"pk": not_exist_post_pk}),
+            data=json.dumps(valid_form),
+            content_type="application/json",
+        )
+
+        # Then : 404 Not found가 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+    def test_return_bad_request_when_add_invalid_comment(self):
+        # Given : 정상적으로 Comment를 등록할 수 없는 Form
+        invalid_form = {}
+
+        # When : 비어있는 Form으로 Comment 생성 요청
+        response = self.client.post(
+            reverse("add_comment_to_post", kwargs={"pk": self.post.pk}),
+            data=json.dumps(invalid_form),
+            content_type="application/json",
+        )
+
+        # Then : 400 Bad Request를 반환한다
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)

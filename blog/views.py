@@ -2,19 +2,23 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from .models import Post, Comment
-from .forms import PostForm, CommentForm
 from django.http import JsonResponse
 from http import HTTPStatus
 import json
 from django.forms.models import model_to_dict
 from .helpers import CustomDateTimeJSONEncoder
 from django.views.decorators.http import require_POST
+from django.db.models import prefetch_related_objects
 
 
 def post_list(request):
-    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by(
-        "published_date"
+    posts = (
+        Post.objects
+            # .prefetch_related("comments")
+        .filter(published_date__lte=timezone.now())
+        .order_by("published_date")
     )
+
     data = json.dumps(
         [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
     )
@@ -23,9 +27,14 @@ def post_list(request):
 
 
 def post_detail(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+    # post = get_object_or_404(Post, pk=pk)
+    post = Post.objects.prefetch_related("comments").get(pk=pk)
+    data = model_to_dict(post)
+    data["comments"] = [model_to_dict(comment) for comment in post.comments.all()]
 
-    return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
+    print(Post.objects.select_related().get(pk=pk))
+
+    return JsonResponse(data, status=HTTPStatus.OK)
 
 
 @login_required
@@ -56,6 +65,7 @@ def post_edit(request, pk):
     except KeyError:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
     else:
+        post.save()
         return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
@@ -82,14 +92,21 @@ def post_remove(request, pk):
     return redirect("post_list")
 
 
+@require_POST
 def add_comment_to_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    form = CommentForm(request.POST)
-    if form.is_valid():
-        comment = form.save(commit=False)
-        comment.post = post
-        comment.save()
-        return redirect("post_detail", pk=post.pk)
+    # post = Post.objects.get(pk=pk)
+    data = json.loads(request.body)
+
+    try:
+        comment = Comment.objects.create(
+            post=post, author=data["author"], text=data["text"]
+        )
+        print(Post.objects.prefetch_related("comments").filter(pk=pk)[0].comments)
+    except KeyError:
+        return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
+    else:
+        return JsonResponse(model_to_dict(comment), status=HTTPStatus.CREATED)
 
 
 @login_required
