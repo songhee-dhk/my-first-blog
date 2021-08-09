@@ -256,7 +256,7 @@ class TestComment(TestCase):
 
         # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
         response = self.client.get(
-            reverse("comment_list", kwargs={"post_pk": self.post.pk})
+            reverse("comment_list", kwargs={"pk": self.post.pk})
         )
 
         # Then : 200 OK가 반환
@@ -276,7 +276,7 @@ class TestComment(TestCase):
 
         # When : 존재하지 않는 Post의 Comment 조회를 요청
         response = self.client.get(
-            reverse("comment_list", kwargs={"post_pk": not_exist_post_pk})
+            reverse("comment_list", kwargs={"pk": not_exist_post_pk})
         )
 
         # Then : 404 not found를 반환
