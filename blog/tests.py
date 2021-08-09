@@ -227,3 +227,73 @@ class TestPost(TestCase):
 
         # Then : 404 Not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+
+class TestComment(TestCase):
+    def _login_user(self):
+        return self.client.login(username=self.username, password=self.password)
+
+    def _create_comment(self, post, author, text):
+        return Comment.objects.create(post=post, author=author, text=text)
+
+    def setUp(self):
+        self.username = "username"
+        self.password = "password"
+        self.user = User.objects.create_user(self.username)
+        self.user.set_password(self.password)
+        self.user.save()
+
+        self.post = Post.objects.create(
+            author=self.user, title="Post title", text="Post text"
+        )
+
+    def return_ok_when_request_update_comment_on_valid_form(self):
+        # Given : 미리 생성된 Comment와 정상적으로 update할 수 있는 Form
+        saved_comment = self._create_comment(self.post, "old author", "old text")
+        valid_form = {"author": "update author", "text": "update text"}
+
+        # When : 정상적으로 Comment의 수정을 요청
+        response = self.client.post(
+            reverse("comment_edit", kwargs={"pk": saved_comment.pk}),
+            data=json.dumps(valid_form),
+            content_type="application/json",
+        )
+
+        # Then : 200 ok를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # And : 정상적으로 수정된 내용이 반환
+        data = response.json()
+
+        self.assertEqual(data["author"], valid_form["author"])
+        self.assertEqual(data["text"], valid_form["text"])
+
+    def return_bad_request_when_request_update_comment_on_invalid_form(self):
+        # Given : 미리 생성된 Comment와 비어있는 Form
+        saved_comment = self._create_comment(self.post, "old author", "old text")
+        empty_form = {}
+
+        # When : 정상적으로 Comment의 수정을 요청
+        response = self.client.post(
+            reverse("comment_edit", kwargs={"pk": saved_comment.pk}),
+            data=json.dumps(empty_form),
+            content_type="application/json",
+        )
+
+        # Then : bad request를 반환
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+    def return_404_when_request_update_not_exist_comment(self):
+        # Given : 존재하지 않는 comment의 pk와 정상적으로 수정이 가능한 form
+        not_exist_comment_pk = 1234
+        valid_form = {"author": "update author", "text": "update text"}
+
+        # When : comment의 수정을 요청
+        response = self.client.post(
+            reverse("comment_edit", kwargs={"pk": not_exist_comment_pk}),
+            data=json.dumps(valid_form),
+            content_type="application/json",
+        )
+
+        # Then : 404 not found를 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)

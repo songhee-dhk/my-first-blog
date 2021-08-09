@@ -99,9 +99,13 @@ def add_comment_to_post(request, pk):
 
 @login_required
 def comment_approve(request, pk):
-    comment = get_object_or_404(Comment, pk=pk)
+    try:
+        comment = Comment.objects.get(pk=pk)
+    except Comment.DoesNotExist:
+        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
+
     comment.approve()
-    return redirect("post_detail", pk=comment.post.pk)
+    return JsonResponse(model_to_dict(comment), status=HTTPStatus.OK)
 
 
 @login_required
@@ -109,3 +113,20 @@ def comment_remove(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.delete()
     return redirect("post_detail", pk=comment.post.pk)
+
+
+@require_POST
+def comment_edit(request, pk):
+    data = json.loads(request.body)
+    try:
+        comment = Comment.objects.get(pk=pk)
+        comment.author = data["author"]
+        comment.text = data["text"]
+    except Comment.DoesNotExist:
+        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
+    except KeyError:
+        return JsonResponse(data={}, status=HTTPStatus.BAD_REQUEST)
+
+    comment.save()
+
+    return JsonResponse(model_to_dict(comment), status=HTTPStatus.OK)
