@@ -214,9 +214,9 @@ class TestPost(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
         # And : 정상적으로 Post가 삭제되어 존재하는 Post가 없어짐
-        self.assertEqual(Post.objects.count(), 0)
+        self.assertFalse(Post.objects.exists())
 
-    def test_return_not_found_when_delete_not_exist_post_(self):
+    def test_return_not_found_when_delete_not_exist_post(self):
         # Given : 존재하지 않는 Post의 pk
         not_exist_pk = 1234
 
