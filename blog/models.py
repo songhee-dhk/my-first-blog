@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django.forms.models import model_to_dict
 
 
 class Post(models.Model):
@@ -19,8 +18,7 @@ class Post(models.Model):
         return self.comments.filter(approved_comment=True)
 
     def __str__(self):
-        # return self.title
-        return str(model_to_dict(self))
+        return self.title
 
 
 class Comment(models.Model):
@@ -35,5 +33,4 @@ class Comment(models.Model):
         self.save()
 
     def __str__(self):
-        # return self.text
-        return str(model_to_dict(self))
+        return self.text
