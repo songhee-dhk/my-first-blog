@@ -194,7 +194,7 @@ class TestPost(APITestMixin, TestCase):
         # Then : 200 OK를 반환
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-        # And : Post의 published_date 값이 변경
+        # And : Post의 published_date 값이 생성
         self.assertTrue(response.json()["published_date"])
 
 
