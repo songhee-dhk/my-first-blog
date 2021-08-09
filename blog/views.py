@@ -84,7 +84,7 @@ def post_publish(request, pk):
 def post_remove(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.delete()
-    return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
+    return JsonResponse(model_to_dict(post), status=HTTPStatus.NO_CONTENT)
 
 
 def add_comment_to_post(request, pk):
