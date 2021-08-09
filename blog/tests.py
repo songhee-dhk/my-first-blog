@@ -44,9 +44,6 @@ class TestPost(TestCase):
     def test_get_post_detail(self):
         # Given : 새로운 Post 생성
         saved_post = self._create_post(self.user, "Post title", "Post content")
-        Comment.objects.create(post=saved_post, author="AUTHOR", text="TEXT")
-        Comment.objects.create(post=saved_post, author="AUTHOR", text="TEXT")
-        Comment.objects.create(post=saved_post, author="AUTHOR", text="TEXT")
 
         # When : 생성된 Post 단건 조회
         response = self.client.get(reverse("post_detail", kwargs={"pk": saved_post.pk}))
