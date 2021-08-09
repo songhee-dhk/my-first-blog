@@ -99,15 +99,15 @@ class TestPost(TestCase):
         # Then : Post가 생성되지 않고 로그인 페이지로 이동하게 한다
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
-    def test_return_bad_request_when_create_post_in_empty_form(self):
+    def test_return_bad_request_when_create_post_in_empty_data(self):
         # Given : 비어있는 Form
         self._login_user()
-        empty_form = {}
+        empty_reqeust_data = {}
 
         # When : 빈 Form으로 Post 생성을 요청
         response = self.client.post(
             reverse("post_new"),
-            data=json.dumps(empty_form),
+            data=json.dumps(empty_reqeust_data),
             content_type="application/json",
         )
 
@@ -118,12 +118,12 @@ class TestPost(TestCase):
         # Given : 정상적으로 Post의 수정이 가능한 데이터
         exist_post = self._create_post(self.post_author, "Old Title", "Old Text")
         self._login_user()
-        update_form = {"title": "New Title", "text": "New Text"}
+        update_request_data = {"title": "New Title", "text": "New Text"}
 
         # When : Post 수정 내용과 함께 요청을 보냄
         response = self.client.post(
             reverse("post_edit", kwargs={"pk": exist_post.pk}),
-            data=json.dumps(update_form),
+            data=json.dumps(update_request_data),
             content_type="application/json",
         )
 
@@ -132,39 +132,39 @@ class TestPost(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertEqual(post["author"], self.user.pk)
-        self.assertEqual(post["title"], update_form["title"])
-        self.assertEqual(post["text"], update_form["text"])
+        self.assertEqual(post["title"], update_request_data["title"])
+        self.assertEqual(post["text"], update_request_data["text"])
 
     def test_redirect_login_page_when_not_logged_in_user_attempts_to_update_post(self):
         # Given : 로그인하지 않은 상태와 정상적으로 Post를 수정할 수 있는 데이터
         exist_post = self._create_post(self.post_author, "Old Title", "Old Text")
-        update_form = {"title": "New Title", "text": "New Text"}
+        update_request_data = {"title": "New Title", "text": "New Text"}
 
         # When : Post의 수정을 요청
         response = self.client.post(
             reverse("post_edit", kwargs={"pk": exist_post.pk}),
-            data=json.dumps(update_form),
+            data=json.dumps(update_request_data),
             content_type="application/json",
         )
 
         # Then : Post가 수정되지 않는다
         self.assertNotEqual(exist_post.author, self.user.pk)
-        self.assertNotEqual(exist_post.title, update_form["title"])
-        self.assertNotEqual(exist_post.text, update_form["text"])
+        self.assertNotEqual(exist_post.title, update_request_data["title"])
+        self.assertNotEqual(exist_post.text, update_request_data["text"])
 
         # And : 로그인 페이지로 이동
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
-    def test_return_bad_request_when_attempts_to_update_post_in_empty_form(self):
+    def test_return_bad_request_when_attempts_to_update_post_in_empty_data(self):
         # Given : 로그인했지만 비어있는 Form
         exist_post = self._create_post(self.post_author, "Old Title", "Old Text")
         self._login_user()
-        empty_form = {}
+        empty_request_data = {}
 
         # When : 빈 Form으로 Post 수정을 요청
         response = self.client.post(
             reverse("post_edit", kwargs={"pk": exist_post.pk}),
-            data=json.dumps(empty_form),
+            data=json.dumps(empty_request_data),
             content_type="application/json",
         )
 
@@ -221,12 +221,12 @@ class TestComment(TestCase):
 
     def test_should_return_ok_when_create_comment(self):
         # Given : 정상적으로 Comment 작성이 가능한 데이터
-        valid_form = {"author": "comment author", "text": "comment text"}
+        valid_request_data = {"author": "comment author", "text": "comment text"}
 
         # When : Comment의 생성을 요청
         response = self.client.post(
             reverse("add_comment_to_post", kwargs={"pk": self.post.pk}),
-            data=json.dumps(valid_form),
+            data=json.dumps(valid_request_data),
             content_type="application/json",
         )
 
@@ -236,18 +236,18 @@ class TestComment(TestCase):
         # And : 생성 후 반환된 데이터와 전달한 데이터가 일치하는지 확인
         data = response.json()
         self.assertTrue(data["id"])
-        self.assertEqual(data["author"], valid_form["author"])
-        self.assertEqual(data["text"], valid_form["text"])
+        self.assertEqual(data["author"], valid_request_data["author"])
+        self.assertEqual(data["text"], valid_request_data["text"])
 
     def test_should_return_404_when_attempts_to_add_comment_to_not_exist_post(self):
         # Given : 없는 Post의 pk와 정상적으로 Comment의 작성이 가능한 데이터
         not_exist_post_pk = 1234
-        valid_form = {"author": "comment author", "text": "comment text"}
+        valid_request_data = {"author": "comment author", "text": "comment text"}
 
         # When : Comment의 생성을 요청
         response = self.client.post(
             reverse("add_comment_to_post", kwargs={"pk": not_exist_post_pk}),
-            data=json.dumps(valid_form),
+            data=json.dumps(valid_request_data),
             content_type="application/json",
         )
 
@@ -255,13 +255,13 @@ class TestComment(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_return_bad_request_when_add_invalid_comment(self):
-        # Given : 정상적으로 Comment를 등록할 수 없는 Form
-        invalid_form = {}
+        # Given : 정상적으로 Comment를 등록할 수 없는 데이
+        invalid_request_data = {}
 
         # When : 비어있는 Form으로 Comment 생성 요청
         response = self.client.post(
             reverse("add_comment_to_post", kwargs={"pk": self.post.pk}),
-            data=json.dumps(invalid_form),
+            data=json.dumps(invalid_request_data),
             content_type="application/json",
         )
 
