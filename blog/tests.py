@@ -196,16 +196,16 @@ class TestPost(APITestMixin, TestCase):
 
         # And : Post의 published_date 값이 생성
         self.assertTrue(response.json()["published_date"])
-
-    def test_delete_post_return_no_content(self):
+        
+    def test_delete_post_return_ok(self):
         # Given : 삭제할 Post를 생성
         post = self._create_post(self.user, "Post title", "Post content")
 
         # When : Post의 삭제를 요청
         response = self.client.delete(reverse("post_remove", kwargs={"pk": post.pk}))
 
-        # Then : 204 No Content를 반환
-        self.assertEqual(response.status_code, HTTPStatus.NO_CONTENT)
+        # Then : 200 OK를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
         # And : 정상적으로 Post가 삭제되어 존재하는 Post가 없어짐
         self.assertFalse(Post.objects.exists())
@@ -222,13 +222,10 @@ class TestPost(APITestMixin, TestCase):
         # Then : 404 Not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-
+        
 class TestComment(APITestMixin, TestCase):
     def _login_user(self):
         return self.client.login(username=self.username, password=self.password)
-
-    def _create_comment(self, post, author, text):
-        Comment.objects.create(post=post, author=author, text=text)
 
     def setUp(self):
         self.username = "username"
@@ -240,42 +237,6 @@ class TestComment(APITestMixin, TestCase):
         self.saved_post = Post.objects.create(
             author=self.user, title="Post title", text="Post text"
         )
-
-    def test_return_ok_when_request_comment_list(self):
-        # Given : Post에 10개의 Comment 생성
-        author = "author"
-        text = "comment text"
-        for _ in range(10):
-            self._create_comment(self.post, author, text)
-
-        # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
-        response = self.get(
-            reverse("comment_list", kwargs={"pk": self.saved_post.pk})
-        )
-
-        # Then : 200 OK가 반환
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-
-        # And : Comment들이 정상적으로 모두 반환
-        data = response.json()
-        random_comment_pk = 3
-        comment = data[random_comment_pk]
-
-        self.assertEqual(len(data), 10)
-        self.assertEqual(comment["author"], author)
-        self.assertEqual(comment["text"], text)
-
-    def test_return_not_found_when_request_not_exist_post_comment_list(self):
-        # Given : 존재하지 않는 Post의 pk
-        not_exist_post_pk = 1234
-
-        # When : 존재하지 않는 Post의 Comment 조회를 요청
-        response = self.get(
-            reverse("comment_list", kwargs={"pk": not_exist_post_pk})
-        )
-
-        # Then : 404 not found를 반환
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_should_return_ok_when_create_comment(self):
         # Given : 정상적으로 Comment 작성이 가능한 데이터

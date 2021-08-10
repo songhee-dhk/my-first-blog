@@ -5,6 +5,7 @@ from .models import Post, Comment
 from django.http import JsonResponse
 from http import HTTPStatus
 import json
+from django.core.serializers.json import DjangoJSONEncoder
 from django.forms.models import model_to_dict
 from django.views.decorators.http import require_POST, require_http_methods
 
@@ -16,6 +17,7 @@ def post_list(request):
 
     return JsonResponse(
         data=[model_to_dict(post) for post in posts],
+        encoder=DjangoJSONEncoder,
         status=HTTPStatus.OK,
         safe=False,
     )
@@ -63,6 +65,7 @@ def post_draft_list(request):
 
     return JsonResponse(
         data=[model_to_dict(post) for post in posts],
+        encoder=DjangoJSONEncoder,
         status=HTTPStatus.OK,
         safe=False,
     )
@@ -110,17 +113,3 @@ def comment_remove(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.delete()
     return redirect("post_detail", pk=comment.post.pk)
-
-
-def comment_list(request, pk):
-    try:
-        Post.objects.get(pk=pk)
-    except Post.DoesNotExist:
-        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
-
-    comments = Comment.objects.filter(post__pk=pk).order_by("pk")
-    return JsonResponse(
-        data=[model_to_dict(comment) for comment in comments],
-        status=HTTPStatus.OK,
-        safe=False,
-    )
