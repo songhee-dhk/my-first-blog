@@ -248,7 +248,7 @@ class TestComment(APITestMixin, TestCase):
         author = "author"
         text = "comment text"
         for _ in range(10):
-            self._create_comment(self.post, author, text)
+            self._create_comment(self.saved_post, author, text)
 
         # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
         response = self.get(reverse("comment_list", kwargs={"pk": self.saved_post.pk}))
@@ -371,7 +371,7 @@ class TestComment(APITestMixin, TestCase):
     def test_return_ok_when_request_approve_comment(self):
         # Given : 아직 approve 되지 않은 comment
         self._login_user()
-        saved_comment = self._create_comment(self.post, "author", "text")
+        saved_comment = self._create_comment(self.saved_post, "author", "text")
 
         # When : comment의 approve를 요청
         response = self.post(
