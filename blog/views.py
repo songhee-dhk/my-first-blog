@@ -103,7 +103,7 @@ def comment_approve(request, pk):
     try:
         comment = Comment.objects.get(pk=pk)
     except Comment.DoesNotExist:
-        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({}, status=HTTPStatus.NOT_FOUND)
 
     comment.approve()
     return JsonResponse(model_to_dict(comment), status=HTTPStatus.OK)
@@ -124,19 +124,19 @@ def comment_edit(request, pk):
         comment.author = data["author"]
         comment.text = data["text"]
     except Comment.DoesNotExist:
-        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({}, status=HTTPStatus.NOT_FOUND)
     except KeyError:
-        return JsonResponse(data={}, status=HTTPStatus.BAD_REQUEST)
-
-    comment.save()
-    return JsonResponse(model_to_dict(comment), status=HTTPStatus.OK)
+        return JsonResponse({}, status=HTTPStatus.BAD_REQUEST)
+    else:
+        comment.save()
+        return JsonResponse(model_to_dict(comment), status=HTTPStatus.OK)
 
   
 def comment_list(request, pk):
     try:
         Post.objects.get(pk=pk)
     except Post.DoesNotExist:
-        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({}, status=HTTPStatus.NOT_FOUND)
 
     comments = Comment.objects.filter(post__pk=pk).order_by("pk")
     return JsonResponse(

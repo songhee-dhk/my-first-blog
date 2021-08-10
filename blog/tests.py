@@ -242,8 +242,8 @@ class TestComment(APITestMixin, TestCase):
         self.saved_post = Post.objects.create(
             author=self.user, title="Post title", text="Post text"
         )
-  
-      def test_return_ok_when_request_comment_list(self):
+
+    def test_return_ok_when_request_comment_list(self):
         # Given : Post에 10개의 Comment 생성
         author = "author"
         text = "comment text"
@@ -251,9 +251,7 @@ class TestComment(APITestMixin, TestCase):
             self._create_comment(self.post, author, text)
 
         # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
-        response = self.get(
-            reverse("comment_list", kwargs={"pk": self.saved_post.pk})
-        )
+        response = self.get(reverse("comment_list", kwargs={"pk": self.saved_post.pk}))
 
         # Then : 200 OK가 반환
         self.assertEqual(response.status_code, HTTPStatus.OK)
@@ -272,13 +270,11 @@ class TestComment(APITestMixin, TestCase):
         not_exist_post_pk = 1234
 
         # When : 존재하지 않는 Post의 Comment 조회를 요청
-        response = self.get(
-            reverse("comment_list", kwargs={"pk": not_exist_post_pk})
-        )
+        response = self.get(reverse("comment_list", kwargs={"pk": not_exist_post_pk}))
 
         # Then : 404 not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-  
+
     def test_should_return_ok_when_create_comment(self):
         # Given : 정상적으로 Comment 작성이 가능한 데이터
         valid_request_data = {"author": "comment author", "text": "comment text"}
@@ -294,7 +290,7 @@ class TestComment(APITestMixin, TestCase):
 
         # And : 생성 후 반환된 데이터와 전달한 데이터가 일치하는지 확인
         data = response.json()
-        
+
         self.assertTrue(data["id"])
         self.assertEqual(data["author"], valid_request_data["author"])
         self.assertEqual(data["text"], valid_request_data["text"])
@@ -333,8 +329,7 @@ class TestComment(APITestMixin, TestCase):
 
         # When : 정상적으로 Comment의 수정을 요청
         response = self.post(
-            reverse("comment_edit", kwargs={"pk": saved_comment.pk}),
-            valid_request_data
+            reverse("comment_edit", kwargs={"pk": saved_comment.pk}), valid_request_data
         )
 
         # Then : 200 ok를 반환
@@ -353,8 +348,7 @@ class TestComment(APITestMixin, TestCase):
 
         # When : 정상적으로 Comment의 수정을 요청
         response = self.post(
-            reverse("comment_edit", kwargs={"pk": saved_comment.pk}),
-            empty_request_data
+            reverse("comment_edit", kwargs={"pk": saved_comment.pk}), empty_request_data
         )
 
         # Then : bad request를 반환
@@ -368,7 +362,7 @@ class TestComment(APITestMixin, TestCase):
         # When : comment의 수정을 요청
         response = self.post(
             reverse("comment_edit", kwargs={"pk": not_exist_comment_pk}),
-            valid_request_data
+            valid_request_data,
         )
 
         # Then : 404 not found를 반환
@@ -380,9 +374,8 @@ class TestComment(APITestMixin, TestCase):
         saved_comment = self._create_comment(self.post, "author", "text")
 
         # When : comment의 approve를 요청
-        response = self.client.post(
-            reverse("comment_approve", kwargs={"pk": saved_comment.pk}),
-            content_type="application/json",
+        response = self.post(
+            reverse("comment_approve", kwargs={"pk": saved_comment.pk})
         )
 
         # Then : 200 ok를 반환
@@ -399,9 +392,8 @@ class TestComment(APITestMixin, TestCase):
         not_exist_comment_pk = 1234
 
         # When : comment의 approve를 요청
-        response = self.client.post(
-            reverse("comment_approve", kwargs={"pk": not_exist_comment_pk}),
-            content_type="application/json",
+        response = self.post(
+            reverse("comment_approve", kwargs={"pk": not_exist_comment_pk})
         )
 
         # Then : 404 not found를 반환
