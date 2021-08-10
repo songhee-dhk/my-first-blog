@@ -1,8 +1,7 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from .models import Post, Comment
-from .forms import PostForm, CommentForm
 from django.http import JsonResponse
 from http import HTTPStatus
 import json
@@ -24,7 +23,6 @@ def post_list(request):
 
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
-
     return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
@@ -55,6 +53,7 @@ def post_edit(request, pk):
     except KeyError:
         return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
     else:
+        post.save()
         return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
@@ -84,14 +83,19 @@ def post_remove(request, pk):
     return JsonResponse(model_to_dict(post), status=HTTPStatus.NO_CONTENT)
 
 
+@require_POST
 def add_comment_to_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    form = CommentForm(request.POST)
-    if form.is_valid():
-        comment = form.save(commit=False)
-        comment.post = post
-        comment.save()
-        return redirect("post_detail", pk=post.pk)
+    data = json.loads(request.body)
+
+    try:
+        comment = Comment.objects.create(
+            post=post, author=data["author"], text=data["text"]
+        )
+    except KeyError:
+        return JsonResponse({"message": "잘못된 입력입니다"}, status=HTTPStatus.BAD_REQUEST)
+    else:
+        return JsonResponse(model_to_dict(comment), status=HTTPStatus.CREATED)
 
 
 @login_required
