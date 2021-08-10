@@ -5,9 +5,9 @@ from .models import Post, Comment
 from django.http import JsonResponse
 from http import HTTPStatus
 import json
+from django.core.serializers.json import DjangoJSONEncoder
 from django.forms.models import model_to_dict
-from .helpers import CustomDateTimeJSONEncoder
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 
 
 def post_list(request):
@@ -15,11 +15,12 @@ def post_list(request):
         "published_date"
     )
 
-    data = json.dumps(
-        [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
+    return JsonResponse(
+        data=[model_to_dict(post) for post in posts],
+        encoder=DjangoJSONEncoder,
+        status=HTTPStatus.OK,
+        safe=False,
     )
-
-    return JsonResponse({"data": data}, status=HTTPStatus.OK)
 
 
 def post_detail(request, pk):
@@ -31,7 +32,6 @@ def post_detail(request, pk):
 @require_POST
 def post_new(request):
     data = json.loads(request.body)
-
     try:
         post = Post.objects.create(
             author=request.user, title=data["title"], text=data["text"]
@@ -62,10 +62,13 @@ def post_edit(request, pk):
 @login_required
 def post_draft_list(request):
     posts = Post.objects.filter(published_date__isnull=True).order_by("created_date")
-    data = json.dumps(
-        [model_to_dict(post) for post in posts], cls=CustomDateTimeJSONEncoder
+
+    return JsonResponse(
+        data=[model_to_dict(post) for post in posts],
+        encoder=DjangoJSONEncoder,
+        status=HTTPStatus.OK,
+        safe=False,
     )
-    return JsonResponse({"data": data}, status=HTTPStatus.OK)
 
 
 @login_required
@@ -76,10 +79,11 @@ def post_publish(request, pk):
     return JsonResponse(model_to_dict(post), status=HTTPStatus.OK)
 
 
+@require_http_methods("DELETE")
 def post_remove(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.delete()
-    return redirect("post_list")
+    return JsonResponse(model_to_dict(post), status=HTTPStatus.NO_CONTENT)
 
 
 @require_POST

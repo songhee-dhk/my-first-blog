@@ -196,8 +196,33 @@ class TestPost(APITestMixin, TestCase):
 
         # And : Post의 published_date 값이 생성
         self.assertTrue(response.json()["published_date"])
+        
+    def test_delete_post_return_ok(self):
+        # Given : 삭제할 Post를 생성
+        post = self._create_post(self.user, "Post title", "Post content")
 
+        # When : Post의 삭제를 요청
+        response = self.client.delete(reverse("post_remove", kwargs={"pk": post.pk}))
 
+        # Then : 200 OK를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # And : 정상적으로 Post가 삭제되어 존재하는 Post가 없어짐
+        self.assertFalse(Post.objects.exists())
+
+    def test_return_not_found_when_delete_not_exist_post(self):
+        # Given : 존재하지 않는 Post의 pk
+        not_exist_pk = 1234
+
+        # When : Post의 삭제를 요청
+        response = self.client.delete(
+            reverse("post_remove", kwargs={"pk": not_exist_pk})
+        )
+
+        # Then : 404 Not found를 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+        
 class TestComment(APITestMixin, TestCase):
     def _login_user(self):
         return self.client.login(username=self.username, password=self.password)
@@ -258,3 +283,4 @@ class TestComment(APITestMixin, TestCase):
 
         # Then : 400 Bad Request를 반환한다
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
