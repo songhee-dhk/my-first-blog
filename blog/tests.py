@@ -18,6 +18,9 @@ class APITestMixin:
             path, json.dumps(data), content_type="application/json", *args, **kwargs
         )
 
+    def delete(self, path, data={}, *args, **kwargs):
+        return self.client.delete(path, data, *args, **kwargs)
+
 
 class TestPost(APITestMixin, TestCase):
     def _create_post(self, user, title, text):
@@ -246,12 +249,10 @@ class TestComment(APITestMixin, TestCase):
         author = "author"
         text = "comment text"
         for _ in range(10):
-            self._create_comment(self.post, author, text)
+            self._create_comment(self.saved_post, author, text)
 
         # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
-        response = self.get(
-            reverse("comment_list", kwargs={"pk": self.saved_post.pk})
-        )
+        response = self.get(reverse("comment_list", kwargs={"pk": self.saved_post.pk}))
 
         # Then : 200 OK가 반환
         self.assertEqual(response.status_code, HTTPStatus.OK)
@@ -270,9 +271,7 @@ class TestComment(APITestMixin, TestCase):
         not_exist_post_pk = 1234
 
         # When : 존재하지 않는 Post의 Comment 조회를 요청
-        response = self.get(
-            reverse("comment_list", kwargs={"pk": not_exist_post_pk})
-        )
+        response = self.get(reverse("comment_list", kwargs={"pk": not_exist_post_pk}))
 
         # Then : 404 not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
@@ -322,4 +321,3 @@ class TestComment(APITestMixin, TestCase):
 
         # Then : 400 Bad Request를 반환한다
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
-
