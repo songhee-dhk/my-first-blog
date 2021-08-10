@@ -107,9 +107,13 @@ def comment_approve(request, pk):
 
 @login_required
 def comment_remove(request, pk):
-    comment = get_object_or_404(Comment, pk=pk)
+    try:
+        comment = get_object_or_404(Comment, pk=pk)
+    except Comment.DoesNotExist:
+        return JsonResponse(data={}, status=HTTPStatus.NOT_FOUND)
+
     comment.delete()
-    return redirect("post_detail", pk=comment.post.pk)
+    return JsonResponse(data={}, status=HTTPStatus.NO_CONTENT)
 
 
 def comment_list(request, pk):
