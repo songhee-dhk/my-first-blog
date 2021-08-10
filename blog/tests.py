@@ -247,15 +247,15 @@ class TestComment(TestCase):
             author=self.user, title="Post title", text="Post text"
         )
 
-    def return_ok_when_request_update_comment_on_valid_form(self):
+    def return_ok_when_request_update_comment_on_valid_data(self):
         # Given : 미리 생성된 Comment와 정상적으로 update할 수 있는 Form
         saved_comment = self._create_comment(self.post, "old author", "old text")
-        valid_form = {"author": "update author", "text": "update text"}
+        valid_request_data = {"author": "update author", "text": "update text"}
 
         # When : 정상적으로 Comment의 수정을 요청
         response = self.client.post(
             reverse("comment_edit", kwargs={"pk": saved_comment.pk}),
-            data=json.dumps(valid_form),
+            data=json.dumps(valid_request_data),
             content_type="application/json",
         )
 
@@ -265,18 +265,18 @@ class TestComment(TestCase):
         # And : 정상적으로 수정된 내용이 반환
         data = response.json()
 
-        self.assertEqual(data["author"], valid_form["author"])
-        self.assertEqual(data["text"], valid_form["text"])
+        self.assertEqual(data["author"], valid_request_data["author"])
+        self.assertEqual(data["text"], valid_request_data["text"])
 
-    def return_bad_request_when_request_update_comment_on_invalid_form(self):
+    def return_bad_request_when_request_update_comment_on_invalid_data(self):
         # Given : 미리 생성된 Comment와 비어있는 Form
         saved_comment = self._create_comment(self.post, "old author", "old text")
-        empty_form = {}
+        empty_request_data = {}
 
         # When : 정상적으로 Comment의 수정을 요청
         response = self.client.post(
             reverse("comment_edit", kwargs={"pk": saved_comment.pk}),
-            data=json.dumps(empty_form),
+            data=json.dumps(empty_request_data),
             content_type="application/json",
         )
 
@@ -286,19 +286,19 @@ class TestComment(TestCase):
     def return_404_when_request_update_not_exist_comment(self):
         # Given : 존재하지 않는 comment의 pk와 정상적으로 수정이 가능한 form
         not_exist_comment_pk = 1234
-        valid_form = {"author": "update author", "text": "update text"}
+        valid_request_data = {"author": "update author", "text": "update text"}
 
         # When : comment의 수정을 요청
         response = self.client.post(
             reverse("comment_edit", kwargs={"pk": not_exist_comment_pk}),
-            data=json.dumps(valid_form),
+            data=json.dumps(valid_request_data),
             content_type="application/json",
         )
 
         # Then : 404 not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def return_ok_when_request_approve_coment(self):
+    def return_ok_when_request_approve_comment(self):
         # Given : 아직 approve 되지 않은 comment
         self._login_user()
         saved_comment = self._create_comment(self.post, "author", "text")
