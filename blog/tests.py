@@ -231,7 +231,7 @@ class TestComment(APITestMixin, TestCase):
         return self.client.login(username=self.username, password=self.password)
 
     def _create_comment(self, post, author, text):
-        Comment.objects.create(post=post, author=author, text=text)
+        return Comment.objects.create(post=post, author=author, text=text)
 
     def setUp(self):
         self.username = "username"
@@ -244,12 +244,19 @@ class TestComment(APITestMixin, TestCase):
             author=self.user, title="Post title", text="Post text"
         )
 
+        self.comment_author = "comment author"
+        self.comment_text = "comment text"
+        self.saved_comments = [
+            Comment.objects.create(
+                post=self.saved_post,
+                author=self.comment_author,
+                text=self.comment_text,
+            )
+            for _ in range(10)
+        ]
+
     def test_return_ok_when_request_comment_list(self):
-        # Given : Post에 10개의 Comment 생성
-        author = "author"
-        text = "comment text"
-        for _ in range(10):
-            self._create_comment(self.saved_post, author, text)
+        # Given : Post에 10개의 Comment 생성, setUp()에서 미리 생성 완료
 
         # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
         response = self.get(reverse("comment_list", kwargs={"pk": self.saved_post.pk}))
@@ -262,9 +269,9 @@ class TestComment(APITestMixin, TestCase):
         random_comment_pk = 3
         comment = data[random_comment_pk]
 
-        self.assertEqual(len(data), 10)
-        self.assertEqual(comment["author"], author)
-        self.assertEqual(comment["text"], text)
+        self.assertEqual(len(data), len(self.saved_comments))
+        self.assertEqual(comment["author"], self.comment_author)
+        self.assertEqual(comment["text"], self.comment_text)
 
     def test_return_not_found_when_request_not_exist_post_comment_list(self):
         # Given : 존재하지 않는 Post의 pk
@@ -321,3 +328,33 @@ class TestComment(APITestMixin, TestCase):
 
         # Then : 400 Bad Request를 반환한다
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+    def test_delete_comment_success(self):
+        # Given : 삭제하고 싶은 comment의 pk
+        comment_to_delete_pk = self.saved_comments[0].pk
+
+        # When : Comment 삭제를 요청
+        response = self.delete(
+            reverse("comment_remove", kwargs={"pk": comment_to_delete_pk})
+        )
+
+        # Then : 204 No content가 반환
+        self.assertEqual(response.status_code, HTTPStatus.NO_CONTENT)
+
+        # And : 작성했던 Comment가 사라짐
+        self.assertEqual(self.saved_post.comments.count(), len(self.saved_comments) - 1)
+
+    def test_return_not_fount_if_request_to_delete_not_exist_comment(self):
+        # Given : 삭제하고 싶은 comment의 pk
+        not_exist_comment_pk = 1234
+
+        # When : Comment 삭제를 요청
+        response = self.delete(
+            reverse("comment_remove", kwargs={"pk": not_exist_comment_pk})
+        )
+
+        # Then : 404 Not Found가 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+        # And : 기존 comment가 변경되지 않는다
+        self.assertEqual(self.saved_post.comments.count(), len(self.saved_comments))
