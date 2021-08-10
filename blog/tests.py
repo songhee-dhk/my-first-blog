@@ -258,7 +258,8 @@ class TestComment(APITestMixin, TestCase):
 
         # And : Comment들이 정상적으로 모두 반환
         data = response.json()
-        comment = data[3]
+        random_comment_pk = 3
+        comment = data[random_comment_pk]
 
         self.assertEqual(len(data), 10)
         self.assertEqual(comment["author"], author)
