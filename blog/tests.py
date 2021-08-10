@@ -1,11 +1,12 @@
-from django.test import TestCase
-from .models import Post, Comment
-from django.contrib.auth.models import User
-from django.utils import timezone
-from django.urls import reverse
+import json
 from http import HTTPStatus
 
-import json
+from django.contrib.auth.models import User
+from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from .models import Post, Comment
 
 
 class TestPost(TestCase):
@@ -210,8 +211,8 @@ class TestPost(TestCase):
         # When : Post의 삭제를 요청
         response = self.client.delete(reverse("post_remove", kwargs={"pk": post.pk}))
 
-        # Then : 200 OK를 반환
-        self.assertEqual(response.status_code, HTTPStatus.OK)
+        # Then : 204를 반환
+        self.assertEqual(response.status_code, HTTPStatus.NO_CONTENT)
 
         # And : 정상적으로 Post가 삭제되어 존재하는 Post가 없어짐
         self.assertFalse(Post.objects.exists())
@@ -247,8 +248,8 @@ class TestComment(TestCase):
             author=self.user, title="Post title", text="Post text"
         )
 
-    def return_ok_when_request_update_comment_on_valid_data(self):
-        # Given : 미리 생성된 Comment와 정상적으로 update할 수 있는 Form
+    def test_return_ok_when_request_update_comment_on_valid_data(self):
+        # Given : 미리 생성된 Comment와 정상적으로 update할 수 있는 데이터
         saved_comment = self._create_comment(self.post, "old author", "old text")
         valid_request_data = {"author": "update author", "text": "update text"}
 
@@ -268,8 +269,8 @@ class TestComment(TestCase):
         self.assertEqual(data["author"], valid_request_data["author"])
         self.assertEqual(data["text"], valid_request_data["text"])
 
-    def return_bad_request_when_request_update_comment_on_invalid_data(self):
-        # Given : 미리 생성된 Comment와 비어있는 Form
+    def test_return_bad_request_when_request_update_comment_on_invalid_data(self):
+        # Given : 미리 생성된 Comment와 비어있는 데이터
         saved_comment = self._create_comment(self.post, "old author", "old text")
         empty_request_data = {}
 
@@ -283,7 +284,7 @@ class TestComment(TestCase):
         # Then : bad request를 반환
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
 
-    def return_404_when_request_update_not_exist_comment(self):
+    def test_return_404_when_request_update_not_exist_comment(self):
         # Given : 존재하지 않는 comment의 pk와 정상적으로 수정이 가능한 form
         not_exist_comment_pk = 1234
         valid_request_data = {"author": "update author", "text": "update text"}
@@ -298,7 +299,7 @@ class TestComment(TestCase):
         # Then : 404 not found를 반환
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def return_ok_when_request_approve_comment(self):
+    def test_return_ok_when_request_approve_comment(self):
         # Given : 아직 approve 되지 않은 comment
         self._login_user()
         saved_comment = self._create_comment(self.post, "author", "text")
@@ -312,12 +313,12 @@ class TestComment(TestCase):
         # Then : 200 ok를 반환
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-        # And : comment의 approved_date 값이 True로 변경
+        # And : comment의 approved_comment 값이 True로 변경
         data = response.json()
 
         self.assertTrue(data["approved_comment"])
 
-    def return_404_when_request_approve_not_exist_comment(self):
+    def test_return_404_when_request_approve_not_exist_comment(self):
         # Given : 존재하지 않는 comment의 pk
         self._login_user()
         not_exist_comment_pk = 1234
