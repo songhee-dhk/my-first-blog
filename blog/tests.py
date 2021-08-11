@@ -343,8 +343,9 @@ class TestComment(APITestMixin, TestCase):
 
         # And : 작성했던 Comment가 사라짐
         self.assertEqual(self.saved_post.comments.count(), len(self.saved_comments) - 1)
+        self.assertFalse(Comment.objects.filter(pk=comment_to_delete_pk).exists())
 
-    def test_return_not_fount_if_request_to_delete_not_exist_comment(self):
+    def test_return_not_found_if_request_to_delete_not_exist_comment(self):
         # Given : 삭제하고 싶은 comment의 pk
         not_exist_comment_pk = 1234
 
