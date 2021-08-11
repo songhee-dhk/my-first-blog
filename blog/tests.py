@@ -1,10 +1,12 @@
-from django.test import TestCase
-from .models import Post, Comment
-from django.contrib.auth.models import User
-from django.utils import timezone
-from django.urls import reverse
+import json
 from http import HTTPStatus
 
+from django.contrib.auth.models import User
+from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from .models import Post, Comment
 
 import json
 
@@ -256,7 +258,7 @@ class TestComment(APITestMixin, TestCase):
         ]
 
     def test_return_ok_when_request_comment_list(self):
-        # Given : Post에 10개의 Comment 생성, setUp()에서 미리 생성 완료
+        # Given : Post에 10개의 Comment 생성
 
         # When : Comment가 작성된 Post에 있는 모든 Comment를 조회
         response = self.get(reverse("comment_list", kwargs={"pk": self.saved_post.pk}))
@@ -298,6 +300,7 @@ class TestComment(APITestMixin, TestCase):
 
         # And : 생성 후 반환된 데이터와 전달한 데이터가 일치하는지 확인
         data = response.json()
+
         self.assertTrue(data["id"])
         self.assertEqual(data["author"], valid_request_data["author"])
         self.assertEqual(data["text"], valid_request_data["text"])
@@ -359,3 +362,80 @@ class TestComment(APITestMixin, TestCase):
 
         # And : 기존 comment가 변경되지 않는다
         self.assertEqual(self.saved_post.comments.count(), len(self.saved_comments))
+
+    def test_return_ok_when_request_update_comment_on_valid_data(self):
+        # Given : 미리 생성된 Comment와 정상적으로 update할 수 있는 데이터
+        saved_comment = self._create_comment(self.saved_post, "old author", "old text")
+        valid_request_data = {"author": "update author", "text": "update text"}
+
+        # When : 정상적으로 Comment의 수정을 요청
+        response = self.post(
+            reverse("comment_edit", kwargs={"pk": saved_comment.pk}), valid_request_data
+        )
+
+        # Then : 200 ok를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # And : 정상적으로 수정된 내용이 반환
+        data = response.json()
+
+        self.assertEqual(data["author"], valid_request_data["author"])
+        self.assertEqual(data["text"], valid_request_data["text"])
+
+    def test_return_bad_request_when_request_update_comment_on_invalid_data(self):
+        # Given : 미리 생성된 Comment와 비어있는 데이터
+        saved_comment = self._create_comment(self.saved_post, "old author", "old text")
+        empty_request_data = {}
+
+        # When : 정상적으로 Comment의 수정을 요청
+        response = self.post(
+            reverse("comment_edit", kwargs={"pk": saved_comment.pk}), empty_request_data
+        )
+
+        # Then : bad request를 반환
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+    def test_return_404_when_request_update_not_exist_comment(self):
+        # Given : 존재하지 않는 comment의 pk와 정상적으로 수정이 가능한 form
+        not_exist_comment_pk = 1234
+        valid_request_data = {"author": "update author", "text": "update text"}
+
+        # When : comment의 수정을 요청
+        response = self.post(
+            reverse("comment_edit", kwargs={"pk": not_exist_comment_pk}),
+            valid_request_data,
+        )
+
+        # Then : 404 not found를 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+    def test_return_ok_when_request_approve_comment(self):
+        # Given : 아직 approve 되지 않은 comment
+        self._login_user()
+        saved_comment = self._create_comment(self.saved_post, "author", "text")
+
+        # When : comment의 approve를 요청
+        response = self.post(
+            reverse("comment_approve", kwargs={"pk": saved_comment.pk})
+        )
+
+        # Then : 200 ok를 반환
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # And : comment의 approved_comment 값이 True로 변경
+        data = response.json()
+
+        self.assertTrue(data["approved_comment"])
+
+    def test_return_404_when_request_approve_not_exist_comment(self):
+        # Given : 존재하지 않는 comment의 pk
+        self._login_user()
+        not_exist_comment_pk = 1234
+
+        # When : comment의 approve를 요청
+        response = self.post(
+            reverse("comment_approve", kwargs={"pk": not_exist_comment_pk})
+        )
+
+        # Then : 404 not found를 반환
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
